@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Display Data</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .container {
+            display: flex;
+        }
+
+        select {
+            height: 50px;
+            width: 150px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Display JSON Data</h1>
+    <form id="dataForm">
+        <label for="jsonFile">Upload JSON File:</label>
+        <input type="file" id="jsonFile" accept=".json">
+
+        <h2>Specify format</h2>
+        <div>
+            <label for="fileType">File Type:</label>
+            <select id="fileType" name="fileType">
+                <option value="json">JSON</option>
+                <option value="csv">CSV</option>
+            </select>
+        </div>
+        <div>
+            <label for="charEncoding">Character Encoding:</label>
+            <select id="charEncoding" name="charEncoding">
+                <option value="utf-8">UTF-8</option>
+                <option value="iso-8859-1">ISO-8859-1</option>
+                <option value="windows-1252">Windows-1252</option>
+                <option value="utf-16">UTF-16</option>
+            </select>
+        </div>
+        <div>
+            <label for="delimiter">Delimiter:</label>
+            <select id="delimiter" name="delimiter">
+                <option value="comma">Comma</option>
+                <option value="space">Space</option>
+                <option value="full-stop">Full Stop</option>
+            </select>
+        </div>
+        <div>
+            <label for="hasHeader">Has Header:</label>
+            <input type="checkbox" id="hasHeader" name="hasHeader">
+        </div>
+        <h1></h1>
+        <button type="submit">Load Data</button>
+    </form>
+
+    <h2>Display Handling Options:</h2>
+    <div class="container">
+        <select id="availableFields" multiple></select>
+        <div>
+            <button id="addToDisplay">>></button><br>
+            <button id="removeFromDisplay">
+                << </button>
+        </div>
+        <select id="displayFields" multiple></select>
+    </div>
+
+    <h2>Displayed Data:</h2>
+    <table id="displayTable" style="display: none;">
+        <thead>
+            <tr id="tableHeaders"></tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+        document.getElementById('dataForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const fileInput = document.getElementById('jsonFile');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const jsonData = JSON.parse(event.target.result);
+                    processData(jsonData);
+                };
+                reader.readAsText(file);
+            }
+        });
+
+        function processData(data) {
+            const products = data.products;
+
+            // Sort products by popularity in descending order
+            const sortedProducts = Object.values(products).sort((a, b) => b.popularity - a.popularity);
+
+            const columns = Object.keys(sortedProducts[0]);
+
+            // Populate Available Fields list
+            const availableFields = document.getElementById('availableFields');
+            columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column;
+                option.text = column;
+                availableFields.appendChild(option);
+            });
+
+            // Handle add and remove buttons
+            document.getElementById('addToDisplay').addEventListener('click', function () {
+                moveOptions('availableFields', 'displayFields');
+            });
+
+            document.getElementById('removeFromDisplay').addEventListener('click', function () {
+                moveOptions('displayFields', 'availableFields');
+            });
+
+            function moveOptions(from, to) {
+                const fromSelect = document.getElementById(from);
+                const toSelect = document.getElementById(to);
+                const selectedOptions = Array.from(fromSelect.selectedOptions);
+                selectedOptions.forEach(option => {
+                    toSelect.appendChild(option);
+                });
+
+                // Refresh table based on selected columns
+                refreshTable();
+            }
+
+            function refreshTable() {
+                const displayFields = Array.from(document.getElementById('displayFields').options)
+                    .map(option => option.value);
+
+                const tableHeaders = document.getElementById('tableHeaders');
+                tableHeaders.innerHTML = '';
+                tableHeaders.insertAdjacentHTML('beforeend', displayFields.map(field => `<th>${field}</th>`).join(''));
+
+                const tableBody = document.getElementById('tableBody');
+                tableBody.innerHTML = '';
+                sortedProducts.forEach(product => {
+                    const tr = document.createElement('tr');
+                    displayFields.forEach(field => {
+                        const td = document.createElement('td');
+                        td.textContent = product[field];
+                        tr.appendChild(td);
+                    });
+                    tableBody.appendChild(tr);
+                });
+            }
+
+            // Show table on initial load
+            document.getElementById('displayTable').style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
